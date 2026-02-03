@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Denebola Birthday Sky</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:#05010a;
+  font-family:system-ui,sans-serif;
+}
+canvas{display:block}
+#ui{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  color:white;
+  font-size:14px;
+  text-shadow:0 0 6px rgba(255,255,255,.6);
+  pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="ui">
+  <strong>Denebola ✨</strong><br>
+  Click the special star
+</div>
+
+<script>
+/* ================= CORE ================= */
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+let w,h,t=0,activated=false;
+
+function resize(){
+  w=canvas.width=innerWidth;
+  h=canvas.height=innerHeight;
+}
+addEventListener("resize",resize);
+resize();
+
+/* ================= BACKGROUND ================= */
+function bg(){
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,"#14001f");
+  g.addColorStop(.5,"#0a1440");
+  g.addColorStop(1,"#03010a");
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,w,h);
+}
+
+/* ================= STARS ================= */
+const stars=[...Array(420)].map(()=>({
+  x:Math.random()*w,
+  y:Math.random()*h,
+  s:.6+Math.random()*1.2,
+  p:Math.random()*Math.PI*2
+}));
+
+function drawStar(x,y,s,a){
+  ctx.globalAlpha=a;
+  ctx.fillStyle="white";
+  ctx.beginPath();
+  ctx.moveTo(x,y-s);
+  ctx.lineTo(x+s,y);
+  ctx.lineTo(x,y+s);
+  ctx.lineTo(x-s,y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/* ================= LEO CONSTELLATION ================= */
+const leo={
+  stars:[
+    {x:.50,y:.35},{x:.42,y:.38},{x:.36,y:.42},
+    {x:.30,y:.48},{x:.44,y:.52},{x:.62,y:.56}
+  ],
+  lines:[[0,1],[1,2],[2,3],[2,4],[4,5]]
+};
+
+const toWorld=p=>{
+  const s=Math.min(w,h)*.6;
+  return {x:w/2+(p.x-.5)*s,y:h/2+(p.y-.5)*s};
+};
+const denebola=toWorld(leo.stars[5]);
+
+/* ================= METEORS ================= */
+const meteors=[];
+function spawnMeteor(burst=false){
+  meteors.push({
+    x:Math.random()*w,
+    y:Math.random()*h*.3,
+    vx:2+Math.random()*1.5,
+    vy:1.5+Math.random(),
+    life:0,
+    max:burst?120:80
+  });
+}
+
+/* ================= TEXT CONSTELLATION ================= */
+const textLines=[
+  [[-280,-20],[-280,20]], [[-280,0],[-250,0]], [[-250,-20],[-250,20]],
+  [[-210,-20],[-210,20]], [[-210,-20],[-180,-10]], [[-180,-10],[-210,0]],
+  [[-210,0],[-180,10]], [[-180,10],[-210,20]],
+  [[-150,-20],[-150,20]], [[-150,-20],[-110,0]], [[-110,0],[-150,20]],
+  [[-40,20],[-40,-20]], [[-40,-20],[0,20]], [[0,20],[0,-20]],
+  [[30,20],[45,-20]], [[45,-20],[60,20]], [[38,0],[52,0]],
+  [[90,20],[90,-20]], [[90,-20],[105,0]], [[105,0],[120,-20]], [[120,-20],[120,20]],
+  [[150,20],[150,-20]]
+];
+
+/* ================= HUGE HEART CONSTELLATION ================= */
+const heartScale = 2.2;   // <<< HEART SIZE CONTROL
+
+const heartLines=[
+  [[0,-80],[-60,-120]], [[-60,-120],[-120,-80]],
+  [[-120,-80],[-100,-20]], [[-100,-20],[0,40]],
+  [[0,40],[100,-20]], [[100,-20],[120,-80]],
+  [[120,-80],[60,-120]], [[60,-120],[0,-80]]
+].map(l=>[
+  [l[0][0]*heartScale, l[0][1]*heartScale],
+  [l[1][0]*heartScale, l[1][1]*heartScale]
+]);
+
+let heartProgress=0;
+let textAlpha=0;
+let textDir=1;
+
+/* ================= INPUT ================= */
+canvas.onclick=e=>{
+  const dx=e.clientX-denebola.x;
+  const dy=e.clientY-denebola.y;
+  if(Math.hypot(dx,dy)<26 && !activated){
+    activated=true;
+    for(let i=0;i<12;i++) spawnMeteor(true);
+  }
+};
+
+/* ================= LOOP ================= */
+function loop(){
+  t+=.016;
+  bg();
+
+  stars.forEach(s=>{
+    const b=.5+.5*Math.sin(t+s.p);
+    drawStar(s.x,s.y,s.s*(.8+b*.3),.5+b*.4);
+  });
+
+  drawStar(denebola.x,denebola.y,3,1);
+
+  if(activated){
+    ctx.strokeStyle="rgba(255,255,255,.7)";
+    ctx.shadowColor="white";
+    ctx.shadowBlur=8;
+    leo.lines.forEach(l=>{
+      const a=toWorld(leo.stars[l[0]]);
+      const b=toWorld(leo.stars[l[1]]);
+      ctx.beginPath();
+      ctx.moveTo(a.x,a.y);
+      ctx.lineTo(b.x,b.y);
+      ctx.stroke();
+    });
+    ctx.shadowBlur=0;
+  }
+
+  if(activated && Math.random()<0.015) spawnMeteor();
+
+  meteors.forEach((m,i)=>{
+    ctx.strokeStyle=`rgba(255,255,255,${1-m.life/m.max})`;
+    ctx.beginPath();
+    ctx.moveTo(m.x,m.y);
+    ctx.lineTo(m.x-m.vx*8,m.y-m.vy*8);
+    ctx.stroke();
+    m.x+=m.vx; m.y+=m.vy; m.life++;
+    if(m.life>m.max) meteors.splice(i,1);
+  });
+
+  /* BIG HEART */
+  if(activated){
+    heartProgress=Math.min(heartProgress+.002,1);
+    ctx.strokeStyle="rgba(255,80,80,.35)";
+    ctx.lineWidth=1.6;
+    heartLines.slice(0,Math.floor(heartProgress*heartLines.length))
+      .forEach(l=>{
+        ctx.beginPath();
+        ctx.moveTo(w/2+l[0][0],h/2+l[0][1]);
+        ctx.lineTo(w/2+l[1][0],h/2+l[1][1]);
+        ctx.stroke();
+      });
+  }
+
+  if(activated){
+    textAlpha+=.004*textDir;
+    if(textAlpha>1){textAlpha=1;textDir=-1;}
+    if(textAlpha<0){textAlpha=0;textDir=1;}
+
+    ctx.strokeStyle=`rgba(255,255,255,${textAlpha})`;
+    textLines.forEach(l=>{
+      ctx.beginPath();
+      ctx.moveTo(w/2+l[0][0],h*.72+l[0][1]);
+      ctx.lineTo(w/2+l[1][0],h*.72+l[1][1]);
+      ctx.stroke();
+    });
+  }
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
