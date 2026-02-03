@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Photo Flip Book – Premium Cinematic</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    background:#050505;
+    color:#eee;
+    font-family: "Courier New", monospace;
+    text-align:center;
+    overflow:hidden;
+}
+
+header{
+    padding:15px;
+    letter-spacing:2px;
+}
+
+input, button, select{
+    background:#111;
+    color:#fff;
+    border:1px solid #444;
+    padding:8px 14px;
+    margin:5px;
+    cursor:pointer;
+}
+
+button:hover{background:#222}
+
+#cinema{
+    position:relative;
+    width:480px;
+    height:340px;
+    margin:20px auto;
+    background:#000;
+    border-radius:14px;
+    border:10px solid #2a2a2a;
+    box-shadow:0 0 60px rgba(255,220,150,0.15);
+    display:none;
+    overflow:hidden;
+}
+
+#screen{
+    width:100%;
+    height:100%;
+    background-size:cover;
+    background-position:center;
+    animation:flicker 0.15s infinite;
+}
+
+@keyframes flicker{
+    0%{opacity:1}
+    50%{opacity:0.96}
+    100%{opacity:1}
+}
+
+.flip{
+    animation:flip 0.45s ease-in-out;
+}
+
+@keyframes flip{
+    0%{transform:rotateX(0)}
+    50%{transform:rotateX(90deg)}
+    100%{transform:rotateX(0)}
+}
+
+#cinema::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:url("https://i.imgur.com/8pKXKzG.png");
+    opacity:0.18;
+    pointer-events:none;
+}
+
+#cinema::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    box-shadow:inset 0 0 90px rgba(0,0,0,0.9);
+    pointer-events:none;
+}
+
+.sprocket{
+    position:absolute;
+    top:0;
+    width:14px;
+    height:100%;
+    background:
+        repeating-linear-gradient(
+        to bottom,
+        #111 0px,
+        #111 12px,
+        #000 12px,
+        #000 26px
+        );
+}
+.left{left:0}
+.right{right:0}
+
+#overlay{
+    position:absolute;
+    bottom:8px;
+    left:0;
+    right:0;
+    font-size:13px;
+    opacity:0.85;
+}
+
+#beam{
+    position:absolute;
+    top:-400px;
+    left:50%;
+    width:500px;
+    height:500px;
+    transform:translateX(-50%);
+    background:radial-gradient(circle, rgba(255,220,150,0.18), transparent 70%);
+    opacity:0;
+    transition:0.5s;
+}
+.playing #beam{opacity:1}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h2>📽 PHOTO FLIP BOOK</h2>
+    <p>Old Film Projector Experience</p>
+</header>
+
+<input type="file" id="upload" accept="image/*" multiple>
+
+<div>
+    <button onclick="play()">▶ Play</button>
+    <button onclick="pause()">⏸ Pause</button>
+    <button onclick="stop()">⏹ Stop</button>
+    <select id="speed">
+        <option value="1200">Slow</option>
+        <option value="800" selected>Normal</option>
+        <option value="500">Fast</option>
+    </select>
+</div>
+
+<div id="cinema">
+    <div id="beam"></div>
+    <div class="sprocket left"></div>
+    <div class="sprocket right"></div>
+    <div id="screen"></div>
+    <div id="overlay">Ready</div>
+</div>
+
+<audio id="projectorSound" preload="auto" loop>
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+let images = [];
+let index = 0;
+let timer = null;
+
+const screen = document.getElementById("screen");
+const cinema = document.getElementById("cinema");
+const overlay = document.getElementById("overlay");
+const sound = document.getElementById("projectorSound");
+
+sound.volume = 0.6;
+
+document.getElementById("upload").addEventListener("change", e => {
+    images = [];
+    for (let file of e.target.files) {
+        images.push(URL.createObjectURL(file));
+    }
+    overlay.textContent = images.length + " photos loaded";
+});
+
+function showFrame(){
+    screen.classList.remove("flip");
+    void screen.offsetWidth;
+    screen.classList.add("flip");
+
+    screen.style.backgroundImage = `url(${images[index]})`;
+    overlay.textContent = `Frame ${index + 1} / ${images.length}`;
+
+    index = (index + 1) % images.length;
+}
+
+function play(){
+    if (images.length < 5 || images.length > 30) {
+        alert("Please upload 5 to 30 photos");
+        return;
+    }
+
+    cinema.style.display = "block";
+    cinema.classList.add("playing");
+
+    sound.currentTime = 0;
+    sound.play().catch(()=>{});
+
+    clearInterval(timer);
+    showFrame();
+    timer = setInterval(showFrame, document.getElementById("speed").value);
+}
+
+function pause(){
+    clearInterval(timer);
+    sound.pause();
+}
+
+function stop(){
+    clearInterval(timer);
+    sound.pause();
+    sound.currentTime = 0;
+    cinema.classList.remove("playing");
+    overlay.textContent = "End of Reel";
+}
+</script>
+
+</body>
+</html>
